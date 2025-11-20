@@ -1,8 +1,8 @@
-use crate::opts::OutputFormat;
 use anyhow::Result;
 use csv::Reader;
 use serde_json::Value;
 use std::fs;
+use crate::cli::OutputFormat;
 
 pub fn process_csv(input: &str, output: String, format: OutputFormat) -> Result<()> {
     let mut rdr = Reader::from_path(input)?;
