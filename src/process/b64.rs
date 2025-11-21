@@ -1,13 +1,12 @@
-use std::string::String;
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use std::fs::File;
-use std::io::Read;
-use anyhow::Error;
-use base64::engine::general_purpose::STANDARD;
 use crate::cli::Base64Format;
+use crate::get_reader;
+use base64::engine::general_purpose::STANDARD;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use std::io::Read;
+use std::string::String;
 
 pub fn process_encode(input: &str, format: Base64Format) -> anyhow::Result<()> {
-    let mut reader: get_reader(input) ;
+    let mut reader = get_reader(input)?;
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
     let encoded = match format {
@@ -16,15 +15,6 @@ pub fn process_encode(input: &str, format: Base64Format) -> anyhow::Result<()> {
     };
     println!("{}", encoded);
     Ok(())
-}
-
-fn get_reader(input: &str) -> Result<Box<dyn Read>,Error> {
-    let mut reader: Box<dyn Read> = if input == "-" {
-        Box::new(std::io::stdin())
-    } else {
-        Box::new(File::open(input)?)
-    };
-    Ok(reader)
 }
 
 pub fn process_decode(input: &str, format: Base64Format) -> anyhow::Result<()> {

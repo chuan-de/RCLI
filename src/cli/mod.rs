@@ -1,10 +1,11 @@
-pub use self::{base64::Base64Format, csv::OutputFormat};
-pub use self::{base64::Base64SubCommand, csv::CsvOpts, genpass::GenPassOpts};
+pub use self::{base64::Base64Format, csv::OutputFormat,text::TextSignFormat};
+pub use self::{base64::Base64SubCommand, csv::CsvOpts, genpass::GenPassOpts, text::TextSubCommand};
 use clap::Parser;
 use std::path::Path;
 mod base64;
 mod csv;
 mod genpass;
+mod text;
 
 #[derive(Debug, Parser)]
 #[command(name="rcli",version,author,about,long_about = None)]
@@ -21,6 +22,8 @@ pub enum Subcommand {
     GenPass(GenPassOpts),
     #[command(subcommand)]
     Base64(Base64SubCommand),
+    #[command(subcommand)]
+    Text(TextSubCommand),
 }
 
 pub fn verify_input_file(filename: &str) -> Result<String, &'static str> {
