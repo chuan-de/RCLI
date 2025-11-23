@@ -1,5 +1,6 @@
-use super::verify_input_file;
+use super::{verify_input_file, verify_path};
 use clap::Parser;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 #[derive(Debug, Parser)]
@@ -8,6 +9,8 @@ pub enum TextSubCommand {
     Sign(TextSignOpts),
     #[command(about = "verify a signed message")]
     Verify(TextVerifyOpts),
+    #[command(about = "generate a random key")]
+    Generate(TextKeyGenerateOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -40,6 +43,14 @@ pub enum TextSignFormat {
     Ed25519,
 }
 
+#[derive(Debug, Parser)]
+pub struct TextKeyGenerateOpts {
+    #[arg(short,long,default_value = "blake3",value_parser=parse_text_sign_format)]
+    pub format: TextSignFormat,
+    #[arg(short,long,value_parser= verify_path)]
+    pub output: PathBuf,
+}
+
 fn parse_text_sign_format(s: &str) -> Result<TextSignFormat, String> {
     s.parse()
 }
@@ -47,11 +58,11 @@ fn parse_text_sign_format(s: &str) -> Result<TextSignFormat, String> {
 impl FromStr for TextSignFormat {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-         match s {
+        match s {
             "blake3" => Ok(TextSignFormat::Blake3),
             "ed25519" => Ok(TextSignFormat::Ed25519),
             _ => Err(format!("Invalid format {}", s)),
-         }
+        }
     }
 }
 impl std::fmt::Display for TextSignFormat {

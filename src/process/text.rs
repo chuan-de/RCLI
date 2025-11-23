@@ -7,6 +7,7 @@ use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
+use rand::rngs::OsRng;
 
 pub trait TestSign {
     fn sign(&self, reader: &mut dyn Read) -> Result<Vec<u8>>;
@@ -14,6 +15,10 @@ pub trait TestSign {
 
 pub trait TextVerify {
     fn verify<R: Read>(&self, reader: &mut R, sig: &[u8]) -> Result<bool>;
+}
+
+pub trait KeyGenerator {
+    fn generate() -> Result<Vec<Vec<u8>>>;
 }
 
 pub trait KeyLoader {
@@ -34,7 +39,7 @@ pub struct Ed25519Verifier {
     key: VerifyingKey,
 }
 
-pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Result<()> {
+pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Result<String> {
     let mut reader = get_reader(input)?;
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
@@ -49,11 +54,10 @@ pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Resu
         }
     };
     let signed = BASE64_URL_SAFE_NO_PAD.encode(&sign);
-    println!("{}", signed);
-    Ok(())
+    Ok(signed)
 }
 
-pub fn process_text_verify(input: &str, key: &str, format: TextSignFormat,sig:&str) -> Result<()> {
+pub fn process_text_verify(input: &str, key: &str, format: TextSignFormat,sig:&str) -> Result<bool> {
     let mut reader = get_reader(input)?;
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
@@ -68,8 +72,16 @@ pub fn process_text_verify(input: &str, key: &str, format: TextSignFormat,sig:&s
             signer.verify(&mut reader, &sig)?
         }
     };
-    println!("{}", verified);
-    Ok(())
+    Ok(verified)
+}
+
+pub fn process_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
+    let key = match format {
+        TextSignFormat::Blake3 => Blake3::generate()?,
+        TextSignFormat::Ed25519 => Ed25519Signer::generate()?,
+    };
+    Ok(key)
+
 }
 
 impl TestSign for Blake3 {
@@ -127,6 +139,24 @@ impl KeyLoader for Blake3 {
     }
 }
 
+impl KeyGenerator for Blake3 {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let key = [0u8;32];
+        let key = key.to_vec();
+        Ok(vec![key])
+    }
+}
+
+impl KeyGenerator for Ed25519Signer{
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let mut csprng = OsRng;
+        let sk: SigningKey = SigningKey::generate(&mut csprng);
+        let pk = sk.verifying_key().to_bytes().to_vec();
+        let sk = sk.to_bytes().to_vec();
+        Ok(vec![sk,pk])
+    }
+}
+
 impl Blake3 {
     pub fn new(key: [u8; 32]) -> Self {
         Self { key }
@@ -173,6 +203,16 @@ mod tests {
         let data = b"hello world";
         let sig = blake3.sign(&mut &data[..]).unwrap();
         assert!(blake3.verify(&mut &data[..], &sig)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_ed25519_sign_verify() -> Result<()> {
+        let sk = Ed25519Signer::load("fixtures/ed25519.sk")?;
+        let pk = Ed25519Verifier::load("fixtures/ed25519.pk")?;
+        let data = b"hello world";
+        let sig = sk.sign(&mut &data[..]).unwrap();
+        assert!(pk.verify(&mut &data[..], &sig)?);
         Ok(())
     }
 }
