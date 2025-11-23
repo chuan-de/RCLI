@@ -1,13 +1,15 @@
 use RCLI::{
-    Base64SubCommand, Opts, Subcommand, TextSignFormat, TextSubCommand, process_csv,
-    process_decode, process_encode, process_generate, process_genpass, process_text_sign,
-    process_text_verify,
+    Base64SubCommand, HttpSubCommand, Opts, Subcommand, TextSignFormat, TextSubCommand,
+    process_csv, process_decode, process_encode, process_generate, process_genpass,
+    process_http_serve, process_text_sign, process_text_verify,
 };
 use clap::Parser;
 use std::fs;
 use zxcvbn::zxcvbn;
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
     let opts = Opts::parse();
     match opts.cmd {
         Subcommand::Csv(opts) => {
@@ -77,6 +79,10 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
             }
+        },
+        Subcommand::Http(cmd) => match cmd {
+            HttpSubCommand::Serve(opts) =>
+                process_http_serve(opts.dir, opts.port).await?,
         },
     }
     Ok(())
